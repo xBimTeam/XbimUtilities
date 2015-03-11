@@ -16,6 +16,7 @@ using Xbim.Ifc2x3.GeometryResource;
 using Xbim.Ifc2x3.UtilityResource;
 using System.Threading;
 using System.Threading.Tasks;
+using XbimGeometry.Interfaces;
 
 namespace XbimRegression
 {
@@ -46,7 +47,7 @@ namespace XbimRegression
         public void Run()
         {
             DirectoryInfo di = new DirectoryInfo(Params.TestFileRoot);
-
+            //FileInfo lastReport = di.GetFiles("XbimRegression_*.csv").OrderByDescending(f => f.LastWriteTime).First();
             String resultsFile = Path.Combine(Params.TestFileRoot, String.Format("XbimRegression_{0:yyyyMMdd-hhmmss}.csv", DateTime.Now));
             // We need to use the logger early to initialise before we use EventTrace
             Logger.Debug("Conversion starting...");
@@ -57,7 +58,7 @@ namespace XbimRegression
                 FileInfo[] toProcess = di.GetFiles("*.IFC", SearchOption.AllDirectories);
                // Parallel.ForEach<FileInfo>(toProcess, opts, file =>
                 foreach (var file in toProcess)
-	
+    
                 {
                     Console.WriteLine("Processing {0}", file);
                     ProcessResult result = ProcessFile(file.FullName, writer);
@@ -81,8 +82,8 @@ namespace XbimRegression
 
         private ProcessResult ProcessFile(string ifcFile, StreamWriter writer)
         {
-            RemoveFiles(ifcFile);
-            long geomTime = -1; long sceneTime = -1; long parseTime = -1;
+            RemoveFiles(ifcFile);  
+            long geomTime = -1;  long parseTime = -1;
             using (EventTrace eventTrace = LoggerFactory.CreateEventTrace())
             {
                 ProcessResult result = new ProcessResult() { Errors = -1 };
@@ -95,13 +96,18 @@ namespace XbimRegression
                     {
                         parseTime = watch.ElapsedMilliseconds;
                         string xbimFilename = BuildFileName(ifcFile, ".xbim");
-                        //model.Open(xbimFilename, XbimDBAccess.ReadWrite);
-                        XbimMesher.GenerateGeometry(model, Logger, null);
+                        //add geometry
+                        Xbim3DModelContext m3d = new Xbim3DModelContext(model);
+                        try
+                        {
+                            m3d.CreateContext(geomStorageType: XbimGeometryType.Polyhedron);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error(String.Format("Error compiling geometry: {0} - {1}", ifcFile, ex.Message), ex);
+
+                        }
                         geomTime = watch.ElapsedMilliseconds - parseTime;
-                        XbimSceneBuilder sb = new XbimSceneBuilder();
-                        string xbimSceneName = BuildFileName(ifcFile, ".xbimScene");
-                        sb.BuildGlobalScene(model, xbimSceneName);
-                        sceneTime = watch.ElapsedMilliseconds - geomTime;
                         IIfcFileHeader header = model.Header;
                         watch.Stop();
                         IfcOwnerHistory ohs = model.Instances.OfType<IfcOwnerHistory>().FirstOrDefault();
@@ -109,7 +115,7 @@ namespace XbimRegression
                         {
                             ParseDuration = parseTime,
                             GeometryDuration = geomTime,
-                            SceneDuration = sceneTime,
+                            SceneDuration = 0,
                             FileName = ifcFile,
                             Entities = model.Instances.Count,
                             IfcSchema = header.FileSchema.Schemas.FirstOrDefault(),
@@ -117,7 +123,7 @@ namespace XbimRegression
                             GeometryEntries = model.GeometriesCount,
                             IfcLength = ReadFileLength(ifcFile),
                             XbimLength = ReadFileLength(xbimFilename),
-                            SceneLength = ReadFileLength(xbimSceneName),
+                            SceneLength = 0,
                             IfcProductEntries = model.Instances.CountOf<IfcProduct>(),
                             IfcSolidGeometries = model.Instances.CountOf<IfcSolidModel>(),
                             IfcMappedGeometries = model.Instances.CountOf<IfcMappedItem>(),
