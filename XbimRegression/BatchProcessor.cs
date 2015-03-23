@@ -5,17 +5,12 @@ using System.Linq;
 using Xbim.Common.Logging;
 using Xbim.IO;
 using Xbim.ModelGeometry.Scene;
-using System.Reflection;
-using Xbim.XbimExtensions;
 using Xbim.XbimExtensions.Interfaces;
-using Xbim.ModelGeometry.Converter;
 using System.Collections.Generic;
 using Xbim.Ifc2x3.Kernel;
 using Xbim.Ifc2x3.GeometricModelResource;
 using Xbim.Ifc2x3.GeometryResource;
 using Xbim.Ifc2x3.UtilityResource;
-using System.Threading;
-using System.Threading.Tasks;
 using XbimGeometry.Interfaces;
 
 namespace XbimRegression
@@ -28,12 +23,15 @@ namespace XbimRegression
         private static readonly ILogger Logger = LoggerFactory.GetLogger();
         private const string XbimConvert = @"XbimConvert.exe";
         private static Object thisLock = new Object();
+        private ProcessResultSet lastReportSet = null;
+        private ProcessResultSet thisReportSet = null;
+            
         Params _params;
 
         public BatchProcessor(Params arguments)
         {
             _params = arguments;
-
+            thisReportSet = new ProcessResultSet();
         }
 
         public Params Params
@@ -47,40 +45,48 @@ namespace XbimRegression
         public void Run()
         {
             DirectoryInfo di = new DirectoryInfo(Params.TestFileRoot);
-            //FileInfo lastReport = di.GetFiles("XbimRegression_*.csv").OrderByDescending(f => f.LastWriteTime).First();
-            String resultsFile = Path.Combine(Params.TestFileRoot, String.Format("XbimRegression_{0:yyyyMMdd-hhmmss}.csv", DateTime.Now));
+            
+            //get last report
+            FileInfo lastReport = di.GetFiles("XbimRegression_*.csv").OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
+            if (lastReport != null)
+            {
+                lastReportSet = new ProcessResultSet();
+                Console.WriteLine("Loading last report file");
+                lastReportSet.LoadFromFile(lastReport.FullName);
+            }
+            
+
             // We need to use the logger early to initialise before we use EventTrace
             Logger.Debug("Conversion starting...");
-            using (StreamWriter writer = new StreamWriter(resultsFile))
+            
+            //get files to process
+            FileInfo[] toProcess = di.GetFiles("*.IFC", SearchOption.AllDirectories);
+            foreach (var file in toProcess)
             {
-                writer.WriteLine(ProcessResult.CsvHeader);
-               // ParallelOptions opts = new ParallelOptions() { MaxDegreeOfParallelism = 12 };
-                FileInfo[] toProcess = di.GetFiles("*.IFC", SearchOption.AllDirectories);
-               // Parallel.ForEach<FileInfo>(toProcess, opts, file =>
-                foreach (var file in toProcess)
-    
+                Console.WriteLine("Processing {0}", file);
+                ProcessResult result = ProcessFile(file.FullName);
+                if (!result.Failed)
                 {
-                    Console.WriteLine("Processing {0}", file);
-                    ProcessResult result = ProcessFile(file.FullName, writer);
-                    if (!result.Failed)
-                    {
-                        Console.WriteLine("Processed {0} : {1} errors, {2} Warnings in {3}ms. {4} IFC Elements & {5} Geometry Nodes.",
-                            file, result.Errors, result.Warnings, result.TotalTime, result.Entities, result.GeometryEntries);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Processing failed for {0} after {1}ms.",
-                            file, result.TotalTime);
-                    }
+                    Console.WriteLine("Processed {0} : {1} errors, {2} Warnings in {3}ms. {4} IFC Elements & {5} Geometry Nodes.",
+                        file, result.Errors, result.Warnings, result.TotalTime, result.Entities, result.GeometryEntries);
                 }
-                //);
-                writer.Close();
+                else
+                {
+                    Console.WriteLine("Processing failed for {0} after {1}ms.",
+                        file, result.TotalTime);
+                }
+
             }
+            //write results to csv file
+            Console.WriteLine("Creating report... ");
+            String resultsFile = Path.Combine(Params.TestFileRoot, String.Format("XbimRegression_{0:yyyyMMdd-hhmmss}.csv", DateTime.Now));
+            thisReportSet.WriteToFile(resultsFile);
+            ///Finished and wait...
             Console.WriteLine("Finished. Press Enter to continue...");
             Console.ReadLine();
         }
 
-        private ProcessResult ProcessFile(string ifcFile, StreamWriter writer)
+        private ProcessResult ProcessFile(string ifcFile)
         {
             RemoveFiles(ifcFile);  
             long geomTime = -1;  long parseTime = -1;
@@ -129,8 +135,7 @@ namespace XbimRegression
                             IfcMappedGeometries = model.Instances.CountOf<IfcMappedItem>(),
                             BooleanGeometries = model.Instances.CountOf<IfcBooleanResult>(),
                             Application = ohs == null ? "Unknown" : ohs.OwningApplication.ToString(),
-                        };
-                        model.Close();                       
+                        };               
                     }
                 }
 
@@ -152,12 +157,13 @@ namespace XbimRegression
                     {
                         CreateLogFile(ifcFile, eventTrace.Events);
                     }
-
-                    lock (thisLock)
+                    //add last reports pass/fail and save report to report set
+                    if (lastReportSet != null) 
                     {
-                        writer.WriteLine(result.ToCsv());
-                        writer.Flush();
+                         result.LastTestFailed = lastReportSet.Compare(result);//set last test pass/fail result
                     }
+                    thisReportSet.Add(result);
+                    
                 }
                 return result;
             }
@@ -236,7 +242,6 @@ namespace XbimRegression
                             );
                     }
                     writer.Flush();
-                    writer.Close();
                 }
             }
             catch (Exception e)
