@@ -36,7 +36,24 @@ namespace XbimExtract
                 TargetModelName = GetModelFileName(args[1], ".xbim");
                 SourceIsXbimFile = Path.GetExtension(SourceModelName).ToLower() == ".xbim";
                 EntityLabels = new List<int>(args.Length - 2);
-                for (int i = 2; i < args.Length; i++) EntityLabels.Add(Int32.Parse(args[i]));
+                for (int i = 2; i < args.Length; i++)
+                {
+                    var entity = args[i];
+                    if (entity.Contains("-"))
+                    {
+                        var parts = entity.Split('-');
+                        Int32 bottom = Int32.Parse(parts[0]);
+                        Int32 top = Int32.Parse(parts[1]);
+                        Console.WriteLine("Including entities {0}..{1} inclusive", bottom, top);
+                        for (Int32 j=bottom; j<=top; ++j)
+                        {
+                            EntityLabels.Add(j);
+                        }
+                    }
+                    else {
+                        EntityLabels.Add(Int32.Parse(entity));
+                    }
+                }
                 // Parameters are valid
                 IsValid = true;
                 IncludeContext = true;
@@ -45,6 +62,7 @@ namespace XbimExtract
             {
                 Console.WriteLine(e.Message);
                 Console.WriteLine("XbimExtract SourceModelName TargetModelName 325 [1756 2678]");
+                Console.WriteLine("\tUse XXX-YYY to extract a range");
                 Console.WriteLine("\tModelName extensions supported are .xBIM, .ifc, .ifcxml");
                 IsValid = false;
             }

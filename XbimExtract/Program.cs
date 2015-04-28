@@ -56,7 +56,10 @@ namespace XbimExtract
                                 foreach (var label in arguments.EntityLabels)
                                 {
                                     IPersistIfcEntity ent = source.Instances[label];
-                                    target.InsertCopy(ent, maps, txn, false);
+                                    if (ent != null)
+                                    {
+                                        target.InsertCopy(ent, maps, txn, false);
+                                    }
                                 }  
                                 txn.Commit();
                             }
