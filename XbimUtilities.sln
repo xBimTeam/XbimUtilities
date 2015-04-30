@@ -3,11 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimRegression", "XbimRegression\XbimRegression.csproj", "{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimExtract", "XbimExtract\XbimExtract.csproj", "{8BB0A786-EA1A-439D-A46C-8B7BFE74F4A5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimConvert", "XbimConvert\XbimConvert.csproj", "{5B6AC153-AC56-4B01-8734-88EAB805A6DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimRegression", "XbimRegression\XbimRegression.csproj", "{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimMetrics", "XbimMetrics\XbimMetrics.csproj", "{64004FC7-32F5-4A2C-B4BB-4491909CBA50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,14 +19,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug (inc CarveCSG)|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug (inc CarveCSG)|Any CPU.Build.0 = Debug|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release (inc CarveCSG)|Any CPU.ActiveCfg = Release|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release (inc CarveCSG)|Any CPU.Build.0 = Release|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8BB0A786-EA1A-439D-A46C-8B7BFE74F4A5}.Debug (inc CarveCSG)|Any CPU.ActiveCfg = Debug CarveCSG|Any CPU
 		{8BB0A786-EA1A-439D-A46C-8B7BFE74F4A5}.Debug (inc CarveCSG)|Any CPU.Build.0 = Debug CarveCSG|Any CPU
 		{8BB0A786-EA1A-439D-A46C-8B7BFE74F4A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -41,6 +35,22 @@ Global
 		{5B6AC153-AC56-4B01-8734-88EAB805A6DB}.Release (inc CarveCSG)|Any CPU.Build.0 = Release (inc CarveCSG)|Any CPU
 		{5B6AC153-AC56-4B01-8734-88EAB805A6DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B6AC153-AC56-4B01-8734-88EAB805A6DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug (inc CarveCSG)|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug (inc CarveCSG)|Any CPU.Build.0 = Debug|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release (inc CarveCSG)|Any CPU.ActiveCfg = Release|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release (inc CarveCSG)|Any CPU.Build.0 = Release|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Debug (inc CarveCSG)|Any CPU.ActiveCfg = Debug|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Debug (inc CarveCSG)|Any CPU.Build.0 = Debug|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Release (inc CarveCSG)|Any CPU.ActiveCfg = Release|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Release (inc CarveCSG)|Any CPU.Build.0 = Release|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64004FC7-32F5-4A2C-B4BB-4491909CBA50}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
