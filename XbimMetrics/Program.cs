@@ -33,7 +33,10 @@ namespace XbimMetrics
                     {
                         using (var model = new XbimModel())
                         {
-                            model.CreateFrom(arguments.SourceModelName);
+                            model.CreateFrom(arguments.SourceModelName,null,null,true);
+                            var m3D = new Xbim3DModelContext(model);
+                            arguments.SourceModelName = Path.ChangeExtension(arguments.SourceModelName, ".xbim");
+                            m3D.CreateContext();
                             model.Close();
                         }
                         CreateLogFile(arguments.SourceModelName, eventTrace.Events);
@@ -58,20 +61,27 @@ namespace XbimMetrics
                     metrics["Number Of IfcHalfSpaceSolid"] = model.Instances.OfType<IfcHalfSpaceSolid>().Count();
                     metrics["Number Of IfcBooleanResult"] = model.Instances.OfType<IfcBooleanResult>().Count();
                     metrics["Number Of IfcMappedItem"] = model.Instances.OfType<IfcMappedItem>().Count();
-                    var totalVoids = 0;
-                    var maxVoidsPerElement = 0;
-                    var totalElements = 0;
+                    double totalVoids = 0;
+                    double maxVoidsPerElement = 0;
+                    double totalElements = 0;
                     foreach (var relVoids in model.Instances.OfType<IfcRelVoidsElement>().GroupBy(r=>r.RelatingBuildingElement))
                     {
                         var voidCount = relVoids.Count();
                         totalVoids += voidCount;
                         totalElements++;
-                        maxVoidsPerElement = Math.Max(maxVoidsPerElement, voidCount);
+                        double newmaxVoidsPerElement = Math.Max(maxVoidsPerElement, voidCount);
+                        if (newmaxVoidsPerElement != maxVoidsPerElement)
+                        {
+                            maxVoidsPerElement = newmaxVoidsPerElement;
+                            Console.WriteLine("Element is #{0}",relVoids.Key.EntityLabel);
+                        }
+
+
                     }
                     metrics["Total Of Openings Cut"] = totalVoids;
                     metrics["Number Of Element with Openings"] = totalElements;
                     metrics["Maximum openings in an Element"] = maxVoidsPerElement;
-                    metrics["Average openings in an Element"] = totalVoids == 0 ? 0 : totalElements / totalVoids;
+                    metrics["Average openings in an Element"] = totalVoids == 0 ? 0.0 : totalElements / totalVoids;
 
                     //if the model has shape geometry report on that
                     var context = new Xbim3DModelContext(model);
@@ -99,7 +109,7 @@ namespace XbimMetrics
                 foreach (Event logEvent in events)
                 {
                     string message = SanitiseMessage(logEvent.Message, ifcFile);
-                    writer.WriteLine("{0:yyyy-MM-dd HH:mm:ss} : {1:-5} {2}.{3} - {4}",
+                    writer.WriteLine("{0:yyyy-MM-dd HH:mm:ss} : {1} {2}.{3} - {4}",
                         logEvent.EventTime,
                         logEvent.EventLevel,
                         logEvent.Logger,
