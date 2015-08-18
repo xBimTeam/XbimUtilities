@@ -63,7 +63,7 @@ namespace XbimExtract
                 Console.WriteLine(e.Message);
                 Console.WriteLine("XbimExtract SourceModelName TargetModelName 325 [1756 2678]");
                 Console.WriteLine("\tUse XXX-YYY to extract a range");
-                Console.WriteLine("\tModelName extensions supported are .xBIM, .ifc, .ifcxml");
+                Console.WriteLine("\tModelName extensions supported are .xBIM, .ifc, .ifcxml, ifczip");
                 IsValid = false;
             }
         }
@@ -82,6 +82,7 @@ namespace XbimExtract
                 case ".xbim":
                 case ".ifc":
                 case ".ifcxml":
+                case ".ifczip":
                     return Path.ChangeExtension(Path.Combine(dirName, fileName), extName);
                 default:
                     throw new Exception("Invalid file extension (" + extName + ")");
