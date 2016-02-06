@@ -43,7 +43,7 @@ namespace XbimExtract
                             if (arguments.IncludeContext) //add in the project and building to maintain a valid-ish file
                             {
                                 IfcProject project = source.IfcProject; //get the spatial decomposition hierarchy
-                               
+                                arguments.EntityLabels.Add(project.EntityLabel);
                                 foreach (var rel in project.IsDecomposedBy)
                                 {
                                     arguments.EntityLabels.Add(rel.EntityLabel);
