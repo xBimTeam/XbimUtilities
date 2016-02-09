@@ -4,12 +4,12 @@ using System.Linq;
 using Xbim.IO;
 using Xbim.ModelGeometry.Scene;
 using System.IO;
+using Xbim.Common;
 using Xbim.Common.Logging;
 using Xbim.Ifc2x3.Kernel;
 using Xbim.Common.Exceptions;
+using Xbim.Common.Geometry;
 using Xbim.Ifc2x3.ProductExtension;
-using Xbim.XbimExtensions.Interfaces;
-using XbimGeometry.Interfaces;
 
 namespace XbimConvert
 {
@@ -34,7 +34,7 @@ namespace XbimConvert
             var SubMode = SearchOption.TopDirectoryOnly;
             if (arguments.ProcessSubDir)
                 SubMode = SearchOption.AllDirectories;
-            var files = Directory.GetFiles(arguments.specdir, arguments.specpart, SubMode);
+            var files = Directory.GetFiles(arguments.Specdir, arguments.Specpart, SubMode);
             if (files.Length == 0)
             {
                 Console.WriteLine("Invalid IFC filename or filter: {0}, current directory is: {1}", args[0], Directory.GetCurrentDirectory());
@@ -82,20 +82,13 @@ namespace XbimConvert
 
                             var m3D = new Xbim3DModelContext(model);
                             try
-                            {
-                                // m3D.CreateContext(progDelegate: progDelegate);
-                                m3D.CreateContext(progDelegate: progDelegate, geomStorageType: XbimGeometryType.PolyhedronBinary);
-                                string webFileName = BuildFileName(origFileName, ".wexbim");
-                                var bw = new BinaryWriter(new FileStream(webFileName, FileMode.Create));
-                                m3D.Write(bw);
-                                bw.Close();
-
+                            {                                
+                                m3D.CreateContext(progDelegate: progDelegate);                             
                             }
                             catch (Exception ce)
                             {
                                 Console.WriteLine("Error compiling geometry\n" + ce.Message);
                             }
-
 
                             geomTime = watch.ElapsedMilliseconds - parseTime;
                             //if (arguments.GenerateScene)
@@ -176,20 +169,7 @@ namespace XbimConvert
                     result = model.Instances.OfType<IfcProduct>(true).Where(t => !(t is IfcFeatureElement)); //exclude openings and additions
                     Logger.Debug("All geometry items will be generated");
                     break;
-
-                case FilterType.ElementID:
-                    List<IfcProduct> list = new List<IfcProduct>();
-                    list.Add(model.Instances[arguments.ElementIdFilter] as IfcProduct);
-                    result = list;
-                    Logger.DebugFormat("Only generating product element ID {0}", arguments.ElementIdFilter);
-                    break;
-
-                case FilterType.ElementType:
-                    Type theType = arguments.ElementTypeFilter.Type;
-                    result = model.Instances.Where<IfcProduct>(i => i.GetType() == theType);
-                    Logger.DebugFormat("Only generating product elements of type '{0}'", arguments.ElementTypeFilter);
-                    break;
-
+               
                 default:
                     throw new NotImplementedException();
             }
@@ -263,7 +243,7 @@ namespace XbimConvert
             if (arguments.SanitiseLogs == false)
                 return message;
 
-            string modelPath = Path.GetDirectoryName(arguments.specdir);
+            string modelPath = Path.GetDirectoryName(arguments.Specdir);
             string currentPath = Environment.CurrentDirectory;
 
             return message

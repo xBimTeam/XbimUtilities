@@ -1,10 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Xbim.XbimExtensions;
-using Xbim.IO;
-using System.Globalization;
-using Xbim.ModelGeometry.Converter;
 
 namespace XbimConvert
 {
@@ -34,10 +30,10 @@ namespace XbimConvert
                 //    Console.Write(" " + i.ToString());
                 return;
             }
-            specdir = Path.GetDirectoryName(args[0]);
-            if (specdir == "")
-                specdir = Directory.GetCurrentDirectory();
-            specpart = Path.GetFileName(args[0]);
+            Specdir = Path.GetDirectoryName(args[0]);
+            if (Specdir == "")
+                Specdir = Directory.GetCurrentDirectory();
+            Specpart = Path.GetFileName(args[0]);
 
             //GenerateSceneOptions = 
             //            GenerateSceneOption.IncludeRegions |
@@ -51,7 +47,7 @@ namespace XbimConvert
                 switch (paramType)
                 {
                     case CompoundParameter.None:
-                        string[] argNames = arg.ToLowerInvariant().Split(new string[] { ":" }, StringSplitOptions.RemoveEmptyEntries);
+                        string[] argNames = arg.ToLowerInvariant().Split(new[] { ":" }, StringSplitOptions.RemoveEmptyEntries);
                         switch (argNames[0])
                         {
                             case "-caching":
@@ -103,7 +99,7 @@ namespace XbimConvert
                                 SanitiseLogs = true;
                                 break;
                             case "-occ":
-                                OCC = true;
+                                Occ = true;
                                 break;
                             case "-geomversion":
                             case "-gv":
@@ -115,33 +111,7 @@ namespace XbimConvert
                                 break;
                         }
                         break;
-
-                    case CompoundParameter.Filter:
-                        // next arg will be either ID or Type
-
-                        IfcType t;
-                        if (IfcMetaData.TryGetIfcType(arg.ToUpperInvariant(), out t) == true)
-                        {
-                            ElementTypeFilter = t;
-                            FilterType = FilterType.ElementType;
-                        }
-                        else
-                        {
-                            // try looking for an instance by ID.
-                            int elementId;
-                            if (int.TryParse(arg, out elementId) == true)
-                            {
-                                ElementIdFilter = elementId;
-                                FilterType = FilterType.ElementID;
-                            }
-                            else
-                            {
-                                // not numeric either
-                                Console.WriteLine("Error: Invalid Filter parameter '{0}'", arg);
-                                return;
-                            }
-                        }
-                        break;
+                    
                 }
 
             }
@@ -150,8 +120,8 @@ namespace XbimConvert
         }
 
         // files identification
-        public string specdir { get; set; }
-        public string specpart { get; set; }
+        public string Specdir { get; set; }
+        public string Specpart { get; set; }
         public bool ProcessSubDir { get; set; }
         
         public bool IsQuiet { get; set; }
@@ -178,9 +148,8 @@ namespace XbimConvert
 
         public bool IsValid { get; set; }
         public FilterType FilterType { get; set; }
-        public int ElementIdFilter {get;set;}
-        public IfcType ElementTypeFilter { get; set; }
-        public bool OCC { get; set; }
+        
+        public bool Occ { get; set; }
         /// <summary>
         /// Indicates that logs should not contain sensitive path information.
         /// </summary>
@@ -200,7 +169,7 @@ namespace XbimConvert
     public enum FilterType
     {
         None,
-        ElementID,
+        ElementId,
         ElementType
     };
 }

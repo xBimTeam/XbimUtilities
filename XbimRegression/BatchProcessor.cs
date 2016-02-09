@@ -5,13 +5,12 @@ using System.Linq;
 using Xbim.Common.Logging;
 using Xbim.IO;
 using Xbim.ModelGeometry.Scene;
-using Xbim.XbimExtensions.Interfaces;
 using System.Collections.Generic;
-using Xbim.Ifc2x3.Kernel;
-using Xbim.Ifc2x3.GeometricModelResource;
-using Xbim.Ifc2x3.GeometryResource;
-using Xbim.Ifc2x3.UtilityResource;
-using XbimGeometry.Interfaces;
+using Xbim.Common.Geometry;
+using Xbim.Common.Step21;
+using Xbim.Ifc;
+using Xbim.Ifc4.Interfaces;
+
 
 namespace XbimRegression
 {
@@ -23,15 +22,15 @@ namespace XbimRegression
         private static readonly ILogger Logger = LoggerFactory.GetLogger();
         private const string XbimConvert = @"XbimConvert.exe";
         private static Object thisLock = new Object();
-        private ProcessResultSet lastReportSet = null;
-        private ProcessResultSet thisReportSet = null;
+        private ProcessResultSet _lastReportSet = null;
+        private ProcessResultSet _thisReportSet = null;
             
         Params _params;
 
         public BatchProcessor(Params arguments)
         {
             _params = arguments;
-            thisReportSet = new ProcessResultSet();
+            _thisReportSet = new ProcessResultSet();
         }
 
         public Params Params
@@ -50,9 +49,9 @@ namespace XbimRegression
             FileInfo lastReport = di.GetFiles("XbimRegression_*.csv").OrderByDescending(f => f.LastWriteTime).FirstOrDefault();
             if (lastReport != null)
             {
-                lastReportSet = new ProcessResultSet();
+                _lastReportSet = new ProcessResultSet();
                 Console.WriteLine("Loading last report file");
-                lastReportSet.LoadFromFile(lastReport.FullName);
+                _lastReportSet.LoadFromFile(lastReport.FullName);
             }
             
 
@@ -80,7 +79,7 @@ namespace XbimRegression
             //write results to csv file
             Console.WriteLine("Creating report... ");
             String resultsFile = Path.Combine(Params.TestFileRoot, String.Format("XbimRegression_{0:yyyyMMdd-hhmmss}.csv", DateTime.Now));
-            thisReportSet.WriteToFile(resultsFile);
+            _thisReportSet.WriteToFile(resultsFile);
             ///Finished and wait...
             Console.WriteLine("Finished. Press Enter to continue...");
             Console.ReadLine();
@@ -98,7 +97,7 @@ namespace XbimRegression
 
                     Stopwatch watch = new Stopwatch();
                     watch.Start();
-                    using (XbimModel model = ParseModelFile(ifcFile,Params.Caching))
+                    using (var model = ParseModelFile(ifcFile,Params.Caching))
                     {
                         parseTime = watch.ElapsedMilliseconds;
                         string xbimFilename = BuildFileName(ifcFile, ".xbim");
@@ -106,7 +105,7 @@ namespace XbimRegression
                         Xbim3DModelContext m3d = new Xbim3DModelContext(model);
                         try
                         {
-                            m3d.CreateContext(geomStorageType: XbimGeometryType.Polyhedron);
+                            m3d.CreateContext();
                         }
                         catch (Exception ex)
                         {
@@ -114,9 +113,9 @@ namespace XbimRegression
 
                         }
                         geomTime = watch.ElapsedMilliseconds - parseTime;
-                        IIfcFileHeader header = model.Header;
+                        IStepFileHeader header = model.Header;
                         watch.Stop();
-                        IfcOwnerHistory ohs = model.Instances.OfType<IfcOwnerHistory>().FirstOrDefault();
+                        var ohs = model.Instances.OfType<IIfcOwnerHistory>().FirstOrDefault();
                         result = new ProcessResult()
                         {
                             ParseDuration = parseTime,
@@ -126,14 +125,14 @@ namespace XbimRegression
                             Entities = model.Instances.Count,
                             IfcSchema = header.FileSchema.Schemas.FirstOrDefault(),
                             IfcDescription = String.Format("{0}, {1}", header.FileDescription.Description.FirstOrDefault(), header.FileDescription.ImplementationLevel),
-                            GeometryEntries = model.GeometriesCount,
+                            //GeometryEntries = model.,
                             IfcLength = ReadFileLength(ifcFile),
                             XbimLength = ReadFileLength(xbimFilename),
                             SceneLength = 0,
-                            IfcProductEntries = model.Instances.CountOf<IfcProduct>(),
-                            IfcSolidGeometries = model.Instances.CountOf<IfcSolidModel>(),
-                            IfcMappedGeometries = model.Instances.CountOf<IfcMappedItem>(),
-                            BooleanGeometries = model.Instances.CountOf<IfcBooleanResult>(),
+                            IfcProductEntries = model.Instances.CountOf<IIfcProduct>(),
+                            IfcSolidGeometries = model.Instances.CountOf<IIfcSolidModel>(),
+                            IfcMappedGeometries = model.Instances.CountOf<IIfcMappedItem>(),
+                            BooleanGeometries = model.Instances.CountOf<IIfcBooleanResult>(),
                             Application = ohs == null ? "Unknown" : ohs.OwningApplication.ToString(),
                         };               
                     }
@@ -158,32 +157,31 @@ namespace XbimRegression
                         CreateLogFile(ifcFile, eventTrace.Events);
                     }
                     //add last reports pass/fail and save report to report set
-                    if (lastReportSet != null) 
+                    if (_lastReportSet != null) 
                     {
-                         result.LastTestFailed = lastReportSet.Compare(result);//set last test pass/fail result
+                         result.LastTestFailed = _lastReportSet.Compare(result);//set last test pass/fail result
                     }
-                    thisReportSet.Add(result);
+                    _thisReportSet.Add(result);
                     
                 }
                 return result;
             }
         }
 
-        private static XbimModel ParseModelFile(string ifcFileName,bool caching)
+        private static IfcStore ParseModelFile(string ifcFileName, bool caching)
         {
-            XbimModel model = new XbimModel();
+            IfcStore model;
             //create a callback for progress
             switch (Path.GetExtension(ifcFileName).ToLowerInvariant())
             {
                 case ".ifc":
                 case ".ifczip":
                 case ".ifcxml":
-                    model.CreateFrom(ifcFileName, BuildFileName(ifcFileName, ".xBIM"), null, true, caching);
-                    break;
+                   return IfcStore.Open(ifcFileName);                 
                 default:
                     throw new NotImplementedException(String.Format("XbimConvert does not support converting {0} file formats currently", Path.GetExtension(ifcFileName)));
             }
-            return model;
+           
         }
 
 

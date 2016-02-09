@@ -1,13 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xbim.Ifc2x3.Kernel;
-using Xbim.Ifc2x3.ProductExtension;
-using Xbim.IO;
-using Xbim.XbimExtensions.Interfaces;
+using Xbim.Common;
+using Xbim.Ifc;
+using Xbim.Ifc4.Interfaces;
 
 namespace XbimExtract
 {
@@ -26,39 +22,37 @@ namespace XbimExtract
                 {
                     ReportProgressDelegate progDelegate = delegate(int percentProgress, object userState)
                     {
-                        Console.Write(string.Format("{0:D5}", percentProgress));
+                        Console.Write("{0:D5}", percentProgress);
                         ResetCursor(Console.CursorTop); 
                     };
-                    using (XbimModel source = new XbimModel())
+                    using (var source =  IfcStore.Open(arguments.SourceModelName))
                     {
-                        Console.WriteLine(string.Format("Reading {0}", arguments.SourceModelName));
-                        if (arguments.SourceIsXbimFile)
-                            source.Open(arguments.SourceModelName);
-                        else
-                            source.CreateFrom(arguments.SourceModelName, null, progDelegate,true);
+                        Console.WriteLine("Reading {0}", arguments.SourceModelName);                      
                         Console.WriteLine();
                         Console.WriteLine("Extracting and copying to " + arguments.TargetModelName);
-                        using (XbimModel target = XbimModel.CreateTemporaryModel())
+                        using (var target = IfcStore.Create(new XbimEditorCredentials(), source.IfcSchemaVesion,XbimStoreType.InMemoryModel))
                         {
                             if (arguments.IncludeContext) //add in the project and building to maintain a valid-ish file
                             {
-                                IfcProject project = source.IfcProject; //get the spatial decomposition hierarchy
-                                arguments.EntityLabels.Add(project.EntityLabel);
-                                foreach (var rel in project.IsDecomposedBy)
+                                var project = source.Instances.OfType<IIfcProject>().FirstOrDefault(); //get the spatial decomposition hierarchy
+                                if (project != null)
                                 {
-                                    arguments.EntityLabels.Add(rel.EntityLabel);
+                                    arguments.EntityLabels.Add(project.EntityLabel);
+                                    foreach (var rel in project.IsDecomposedBy)
+                                    {
+                                        arguments.EntityLabels.Add(rel.EntityLabel);
+                                    }
                                 }
-                                
                             }
                             XbimInstanceHandleMap maps = new XbimInstanceHandleMap(source, target); //prevents the same thing being written twice
-                            using (XbimReadWriteTransaction txn = target.BeginTransaction())
+                            using (ITransaction txn = target.BeginTransaction())
                             {
                                 foreach (var label in arguments.EntityLabels)
                                 {
-                                    IPersistIfcEntity ent = source.Instances[label];
+                                    var ent = source.Instances[label];
                                     if (ent != null)
                                     {
-                                        target.InsertCopy(ent, maps, txn, false);
+                                        target.InsertCopy(ent, maps, null,false, true);
                                     }
                                 }  
                                 txn.Commit();

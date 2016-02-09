@@ -87,7 +87,7 @@ namespace XbimMetrics
                     var context = new Xbim3DModelContext(model);
                     metrics["Number of Shape Geometries"] = context.ShapeGeometries().Count();
                     metrics["Number of Shape Instances"] = context.ShapeInstances().Count();
-                    metrics["Number of Surface Styles"] = context.SurfaceStyles().Count();
+                   // metrics["Number of Surface Styles"] = context.().Count();
                     model.Close();
                 }
                 foreach (var metric in metrics)
