@@ -49,7 +49,7 @@ namespace XbimExtract
                             {
                                 foreach (var label in arguments.EntityLabels)
                                 {
-                                    var ent = source.Instances[label];
+                                    var ent = source.Instances.Count < label ? source.Instances[label] : null;
                                     if (ent != null)
                                     {
                                         target.InsertCopy(ent, maps, null,false, true);
