@@ -25,12 +25,13 @@ namespace XbimExtract
                         Console.Write("{0:D5}", percentProgress);
                         ResetCursor(Console.CursorTop); 
                     };
+
                     using (var source =  IfcStore.Open(arguments.SourceModelName))
                     {
                         Console.WriteLine("Reading {0}", arguments.SourceModelName);                      
                         Console.WriteLine();
                         Console.WriteLine("Extracting and copying to " + arguments.TargetModelName);
-                        using (var target = IfcStore.Create(new XbimEditorCredentials(), source.IfcSchemaVesion,XbimStoreType.InMemoryModel))
+                        using (var target = IfcStore.Create(new XbimEditorCredentials(), source.IfcSchemaVersion,XbimStoreType.InMemoryModel))
                         {
                             if (arguments.IncludeContext) //add in the project and building to maintain a valid-ish file
                             {
@@ -49,7 +50,8 @@ namespace XbimExtract
                             {
                                 foreach (var label in arguments.EntityLabels)
                                 {
-                                    var ent = source.Instances.Count < label ? source.Instances[label] : null;
+                                    var ent = source.Instances.Where(x => x.EntityLabel == label).FirstOrDefault();
+
                                     if (ent != null)
                                     {
                                         target.InsertCopy(ent, maps, null,false, true);
