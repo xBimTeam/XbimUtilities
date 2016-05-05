@@ -12,9 +12,12 @@ namespace XbimExtract
 {
     class Program
     {
-        public static ILog logger = LogManager.GetLogger(typeof(Program));
+        public static ILog Logger = LogManager.GetLogger(typeof(Program));
 
-        public static string AppName { get; } = Path.GetFileName(Assembly.GetExecutingAssembly().CodeBase);
+        private static readonly string ApplicationName = Path.GetFileName(Assembly.GetExecutingAssembly().CodeBase);
+        public static string AppName {
+            get { return ApplicationName; }
+        }
 
         /// <summary>
         /// Given a list of IFC entity labels in the source model, extracts them and inserts them in the target model
@@ -23,9 +26,9 @@ namespace XbimExtract
         static void Main(string[] args)
         {
             XmlConfigurator.Configure();
-            logger.InfoFormat("{0} Started", AppName);
+            Logger.InfoFormat("{0} Started", AppName);
 
-            Params arguments = Params.ParseParams(args);
+            var arguments = Params.ParseParams(args);
 
             if (arguments.IsValid)
             {
@@ -39,65 +42,61 @@ namespace XbimExtract
 
                     using (var source =  IfcStore.Open(arguments.SourceModelName))
                     {
-                        logger.InfoFormat("Reading {0}", arguments.SourceModelName);
-                        logger.InfoFormat("Extracting and copying to " + arguments.TargetModelName);
-                        using (var target = IfcStore.Create(new XbimEditorCredentials(), source.IfcSchemaVersion,XbimStoreType.InMemoryModel))
+                        Logger.InfoFormat("Reading {0}", arguments.SourceModelName);
+                        Logger.InfoFormat("Extracting and copying to " + arguments.TargetModelName);
+                        using (var target = IfcStore.Create(source.IfcSchemaVersion,XbimStoreType.InMemoryModel))
                         {
-                            if (arguments.IncludeContext) //add in the project and building to maintain a valid-ish file
+                            var maps = new XbimInstanceHandleMap(source, target); //prevents the same thing being written twice
+                            using (var txn = target.BeginTransaction())
                             {
-                                var project = source.Instances.OfType<IIfcProject>().FirstOrDefault(); //get the spatial decomposition hierarchy
-                                if (project != null)
+                                try
                                 {
-                                    if (! arguments.EntityLabels.Contains(project.EntityLabel))
-                                    {
-                                        arguments.EntityLabels.Add(project.EntityLabel);
-                                    }
+                                    var toInsert =
+                                        arguments.EntityLabels.Select(label => source.Instances[label]).ToList();
+                                    var products = toInsert.OfType<IIfcProduct>().ToList();
+                                    var others = toInsert.Except(products).ToList();
 
-                                    foreach (var rel in project.IsDecomposedBy)
-                                    {
-                                        if (! arguments.EntityLabels.Contains(rel.EntityLabel))
-                                        {
-                                            arguments.EntityLabels.Add(rel.EntityLabel);
-                                        }
-                                    }
+                                    if (products.Any())
+                                        //this will insert products including their spatial containment, 
+                                        //decomposition, properties and other related information
+                                        target.InsertCopy(products, true, true, maps);
+                                    if (others.Any())
+                                        //if any of the specified objects were not products, insert them straight
+                                        foreach (var entity in others)
+                                            target.InsertCopy(entity, maps, null, false, true);
                                 }
-                            }
-
-                            XbimInstanceHandleMap maps = new XbimInstanceHandleMap(source, target); //prevents the same thing being written twice
-                            using (ITransaction txn = target.BeginTransaction())
-                            {
-                                foreach (var label in arguments.EntityLabels)
+                                catch (Exception)
                                 {
-                                    var ent = source.Instances.Where(x => x.EntityLabel == label).FirstOrDefault();
-
-                                    if ((ent != null) &&
-                                        (target.Instances.Count(x => x.EntityLabel == label) == 0))
-                                    {
-                                        target.InsertCopy(ent, maps, null, false, true);
-                                    }
-                                }  
+                                    Logger.Error("Some entity labels don't exist in the source file.");
+                                    return;
+                                }
                                 txn.Commit();
                             }
 
                             File.Delete(arguments.TargetModelName);
-                            logger.Info("Saving to " + arguments.TargetModelName);
+                            Logger.Info("Saving to " + arguments.TargetModelName);
                             target.SaveAs(arguments.TargetModelName,null,progDelegate);
-                            logger.Info("Success");
+                            Logger.Info("Success");
                         }
 
                     }
                 }
                 catch (Exception e)
                 {
-                    logger.FatalFormat("{0}\n{1}", e.Message, e.StackTrace);
+                    Logger.FatalFormat("{0}\n{1}", e.Message, e.StackTrace);
                 }
             }
             else
             {
-                logger.Error("Supplied params are invalid");
+                Logger.Error("Supplied params are invalid");
             }
 
-            logger.InfoFormat("{0} Ended", AppName);
+            Logger.InfoFormat("{0} Ended", AppName);
+
+#if DEBUG
+            Console.WriteLine("Press any key...");
+            Console.ReadKey();
+#endif
         }
 
         private static void ResetCursor(int top)
