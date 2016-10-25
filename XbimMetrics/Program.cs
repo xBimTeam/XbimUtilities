@@ -6,6 +6,7 @@ using Xbim.Common.Logging;
 using Xbim.Ifc2x3.Extensions;
 using Xbim.Ifc2x3.GeometricModelResource;
 using Xbim.Ifc2x3.GeometryResource;
+using Xbim.Ifc2x3.IO;
 using Xbim.Ifc2x3.Kernel;
 using Xbim.Ifc2x3.ProductExtension;
 using Xbim.Ifc2x3.RepresentationResource;
@@ -50,7 +51,7 @@ namespace XbimMetrics
 
                     metrics["Number Of IfcProducts"] = model.Instances.OfType<IfcProduct>().Count();
                     var shapeDefinitions = model.Instances.OfType<IfcProductDefinitionShape>().ToList();
-                    metrics["Number Of IfcProductDefinitionShape"] = shapeDefinitions.Count;
+                    metrics["Number Of IfcProductDefinitionShape"] = shapeDefinitions.Count();
                     var rep = shapeDefinitions.SelectMany(shape=>shape.Representations.SelectMany(a=>a.Items).Where(s=>s.IsSolidModel()));
                     metrics["Number Of Shape Items"] = rep.Count();
 
