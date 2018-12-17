@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28302.56
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimExtract", "XbimExtract\XbimExtract.csproj", "{8BB0A786-EA1A-439D-A46C-8B7BFE74F4A5}"
 EndProject
@@ -10,6 +10,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimRegression", "XbimRegression\XbimRegression.csproj", "{5C6E4CEA-C33F-43A4-9DE0-FA03AC7F59FC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XbimMetrics", "XbimMetrics\XbimMetrics.csproj", "{64004FC7-32F5-4A2C-B4BB-4491909CBA50}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{18C9E7DB-E007-4FC2-BFF8-B6982B43B386}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		Directory.Build.Props = Directory.Build.Props
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,5 +42,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36F41EDD-97FC-46DA-99B0-8CCBBE984BB2}
 	EndGlobalSection
 EndGlobal

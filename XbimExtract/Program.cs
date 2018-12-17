@@ -2,22 +2,19 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using log4net;
-using log4net.Config;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Xbim.Common;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
+using Xbim.IO;
 
 namespace XbimExtract
 {
     class Program
     {
-        public static ILog Logger = LogManager.GetLogger(typeof(Program));
-
-        private static readonly string ApplicationName = Path.GetFileName(Assembly.GetExecutingAssembly().CodeBase);
-        public static string AppName {
-            get { return ApplicationName; }
-        }
+        private static ILogger Logger;
+        public static string AppName { get; } = Path.GetFileName(Assembly.GetExecutingAssembly().CodeBase);
 
         /// <summary>
         /// Given a list of IFC entity labels in the source model, extracts them and inserts them in the target model
@@ -25,8 +22,11 @@ namespace XbimExtract
         /// <param name="args"></param>
         static void Main(string[] args)
         {
-            XmlConfigurator.Configure();
-            Logger.InfoFormat("{0} Started", AppName);
+            var serviceProvider = ConfigureServices();
+            SetupXbimLogging(serviceProvider);
+            IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
+
+            Logger.LogInformation("{0} Started", AppName);
 
             var arguments = Params.ParseParams(args);
 
@@ -36,15 +36,15 @@ namespace XbimExtract
                 {
                     ReportProgressDelegate progDelegate = delegate(int percentProgress, object userState)
                     {
-                        Console.Write("{0:D5}", percentProgress);
+                        Console.Write("{0:D2}%", percentProgress);
                         ResetCursor(Console.CursorTop); 
                     };
 
                     using (var source =  IfcStore.Open(arguments.SourceModelName))
                     {
-                        Logger.InfoFormat("Reading {0}", arguments.SourceModelName);
-                        Logger.InfoFormat("Extracting and copying to " + arguments.TargetModelName);
-                        using (var target = IfcStore.Create(source.IfcSchemaVersion,XbimStoreType.InMemoryModel))
+                        Logger.LogInformation("Reading {0}", arguments.SourceModelName);
+                        Logger.LogInformation("Extracting and copying to " + arguments.TargetModelName);
+                        using (var target = IfcStore.Create(source.SchemaVersion, XbimStoreType.InMemoryModel))
                         {
                             var maps = new XbimInstanceHandleMap(source, target); //prevents the same thing being written twice
                             using (var txn = target.BeginTransaction())
@@ -65,33 +65,33 @@ namespace XbimExtract
                                         foreach (var entity in others)
                                             target.InsertCopy(entity, maps, null, false, true);
                                 }
-                                catch (Exception)
+                                catch (Exception ex)
                                 {
-                                    Logger.Error("Some entity labels don't exist in the source file.");
+                                    Logger.LogError(ex, "Some entity labels don't exist in the source file.");
                                     return;
                                 }
                                 txn.Commit();
                             }
 
                             File.Delete(arguments.TargetModelName);
-                            Logger.Info("Saving to " + arguments.TargetModelName);
+                            Logger.LogInformation("Saving to {filename}", arguments.TargetModelName);
                             target.SaveAs(arguments.TargetModelName,null,progDelegate);
-                            Logger.Info("Success");
+                            Logger.LogInformation("Success");
                         }
 
                     }
                 }
                 catch (Exception e)
                 {
-                    Logger.FatalFormat("{0}\n{1}", e.Message, e.StackTrace);
+                    Logger.LogError(e,"Failed to extract data");
                 }
             }
             else
             {
-                Logger.Error("Supplied params are invalid");
+                Logger.LogError("Supplied params are invalid");
             }
 
-            Logger.InfoFormat("{0} Ended", AppName);
+            Logger.LogInformation("{0} Ended", AppName);
 
 #if DEBUG
             Console.WriteLine("Press any key...");
@@ -112,6 +112,29 @@ namespace XbimExtract
             {
                 Console.WriteLine(e);
             }
+        }
+
+        private static IServiceProvider ConfigureServices()
+        {
+            var serviceCollection = new ServiceCollection();
+
+            serviceCollection.AddLogging(conf => {
+                conf.SetMinimumLevel(LogLevel.Debug);   // Set the minimum log level
+                // Could also add File Logger here
+                conf.AddConsole();
+            });
+
+            return serviceCollection.BuildServiceProvider();
+        }
+
+        private static void SetupXbimLogging(IServiceProvider serviceProvider)
+        {
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+
+            XbimLogging.LoggerFactory = loggerFactory;
+
+            Logger = loggerFactory.CreateLogger<Program>();
+            Logger.LogInformation("Logging set up");
         }
     }
 }

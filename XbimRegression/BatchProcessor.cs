@@ -1,16 +1,15 @@
-﻿using System;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using Xbim.Common.Logging;
-using Xbim.IO;
-using Xbim.ModelGeometry.Scene;
-using System.Collections.Generic;
-using Xbim.Common.Geometry;
+using Xbim.Common;
 using Xbim.Common.Step21;
 using Xbim.Ifc;
 using Xbim.Ifc4.Interfaces;
-
+using Xbim.ModelGeometry.Scene;
 
 namespace XbimRegression
 {
@@ -19,8 +18,8 @@ namespace XbimRegression
     /// </summary>
     public class BatchProcessor
     {
-        private static readonly ILogger Logger = LoggerFactory.GetLogger();
-        private const string XbimConvert = @"XbimConvert.exe";
+        private static ILogger Logger;
+        private static readonly InMemoryLoggerProvider inMemoryProvider = new InMemoryLoggerProvider();
         private static Object thisLock = new Object();
         private ProcessResultSet _lastReportSet = null;
         private ProcessResultSet _thisReportSet = null;
@@ -29,6 +28,9 @@ namespace XbimRegression
 
         public BatchProcessor(Params arguments)
         {
+            var serviceProvider = ConfigureServices();
+            SetupXbimLogging(serviceProvider);
+            IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
             _params = arguments;
             _thisReportSet = new ProcessResultSet();
         }
@@ -56,7 +58,7 @@ namespace XbimRegression
             
 
             // We need to use the logger early to initialise before we use EventTrace
-            Logger.Debug("Conversion starting...");
+            Logger.LogDebug("Conversion starting...");
             
             //get files to process
             FileInfo[] toProcess = di.GetFiles("*.IFC", SearchOption.AllDirectories);
@@ -89,7 +91,7 @@ namespace XbimRegression
         {
             RemoveFiles(ifcFile);  
             long geomTime = -1;  long parseTime = -1;
-            using (EventTrace eventTrace = LoggerFactory.CreateEventTrace())
+           // using (EventTrace eventTrace = LoggerFactory.CreateEventTrace())
             {
                 ProcessResult result = new ProcessResult() { Errors = -1 };
                 try
@@ -109,7 +111,7 @@ namespace XbimRegression
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error(String.Format("Error compiling geometry: {0} - {1}", ifcFile, ex.Message), ex);
+                            Logger.LogError(ex, "Error compiling geometry: {ifcFile} - {err}", ifcFile, ex.Message);
 
                         }
                         geomTime = watch.ElapsedMilliseconds - parseTime;
@@ -140,21 +142,21 @@ namespace XbimRegression
 
                 catch (Exception ex)
                 {
-                    Logger.Error(String.Format("Problem converting file: {0}", ifcFile), ex);
+                    Logger.LogError(ex, "Problem converting file: {0}", ifcFile);
                     result.Failed = true;
                 }
                 finally
                 {
-                    result.Errors = (from e in eventTrace.Events
-                                     where (e.EventLevel == EventLevel.ERROR)
+                    result.Errors = (from e in inMemoryProvider.Messages
+                                     where (e.Type == LogLevel.Error)
                                      select e).Count();
-                    result.Warnings = (from e in eventTrace.Events
-                                       where (e.EventLevel == EventLevel.WARN)
+                    result.Warnings = (from e in inMemoryProvider.Messages
+                                       where (e.Type == LogLevel.Warning)
                                        select e).Count();
                     result.FileName = ifcFile;
-                    if (eventTrace.Events.Count > 0)
+                    if (inMemoryProvider.Messages.Count > 0)
                     {
-                        CreateLogFile(ifcFile, eventTrace.Events);
+                        CreateLogFile(ifcFile, inMemoryProvider.Messages);
                     }
                     //add last reports pass/fail and save report to report set
                     if (_lastReportSet != null) 
@@ -170,16 +172,15 @@ namespace XbimRegression
 
         private static IfcStore ParseModelFile(string ifcFileName, bool caching)
         {
-            IfcStore model;
-            //create a callback for progress
             switch (Path.GetExtension(ifcFileName).ToLowerInvariant())
             {
                 case ".ifc":
                 case ".ifczip":
                 case ".ifcxml":
+            //create a callback for progress
                    return IfcStore.Open(ifcFileName);                 
                 default:
-                    throw new NotImplementedException(String.Format("XbimConvert does not support converting {0} file formats currently", Path.GetExtension(ifcFileName)));
+                    throw new NotImplementedException(String.Format("Xbim does not support converting {0} file formats currently", Path.GetExtension(ifcFileName)));
             }
            
         }
@@ -193,6 +194,7 @@ namespace XbimRegression
         private void RemoveFiles(string ifcFile)
         {
             DeleteFile(BuildFileName(ifcFile, ".xbim"));
+            DeleteFile(BuildFileName(ifcFile, ".jfm"));
             DeleteFile(BuildFileName(ifcFile, ".xbimScene"));
             DeleteFile(BuildFileName(ifcFile, ".log"));
         }
@@ -221,21 +223,21 @@ namespace XbimRegression
             }
             return length;
         }
-        private static void CreateLogFile(string ifcFile, IList<Event> events)
+        private static void CreateLogFile(string ifcFile, IList<LogMessage> events)
         {
             try
             {
                 string logfile = String.Concat(ifcFile, ".log");
                 using (StreamWriter writer = new StreamWriter(logfile, false))
                 {
-                    foreach (Event logEvent in events)
+                    foreach (LogMessage logEvent in events)
                     {
                         string message = SanitiseMessage(logEvent.Message, ifcFile);
                         writer.WriteLine("{0:yyyy-MM-dd HH:mm:ss} : {1:-5} {2}.{3} - {4}",
-                            logEvent.EventTime,
-                            logEvent.EventLevel.ToString(),
-                            logEvent.Logger,
-                            logEvent.Method,
+                            logEvent.Timestamp,
+                            logEvent.Type.ToString(),
+                            logEvent.Category,
+                            "<no method>",
                             message
                             );
                     }
@@ -244,7 +246,7 @@ namespace XbimRegression
             }
             catch (Exception e)
             {
-                Logger.Error(String.Format("Failed to create Log File for {0}", ifcFile), e);
+                Logger.LogError(e, "Failed to create Log File for {0}", ifcFile);
             }
         }
 
@@ -256,6 +258,30 @@ namespace XbimRegression
             return message
                 .Replace(modelPath, String.Empty)
                 .Replace(currentPath, String.Empty);
+        }
+
+        private static IServiceProvider ConfigureServices()
+        {
+            var serviceCollection = new ServiceCollection();
+
+            serviceCollection.AddLogging(conf => {
+                conf.SetMinimumLevel(LogLevel.Debug);   // Set the minimum log level
+                // Could also add File Logger here
+                conf.AddConsole();
+                conf.AddProvider(inMemoryProvider);
+            });
+
+            return serviceCollection.BuildServiceProvider();
+        }
+
+        private static void SetupXbimLogging(IServiceProvider serviceProvider)
+        {
+            var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
+
+            XbimLogging.LoggerFactory = loggerFactory;
+
+            Logger = loggerFactory.CreateLogger<Program>();
+            Logger.LogInformation("Logging set up");
         }
     }
 

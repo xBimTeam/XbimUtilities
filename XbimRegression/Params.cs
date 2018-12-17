@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Xbim.Common.Logging;
 
 
 namespace XbimRegression
@@ -11,8 +10,6 @@ namespace XbimRegression
     /// </summary>
     public class Params
     {
-
-        private static readonly ILogger Logger = LoggerFactory.GetLogger();
 
         private const int DefaultTimeout = 1000 * 60 * 20; // 20 mins
         public bool Caching;

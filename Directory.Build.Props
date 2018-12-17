@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <Version>5.0.0.0</Version>
+    <AssemblyVersion>5.0.0.0</AssemblyVersion>
+    <FileVersion>5.0.0.0</FileVersion>
+    <Copyright>Copyright © XBIM Ltd</Copyright>
+    <Company>Xbim Ltd.</Company>
+    <Authors>Steve Lockley, Martin Cerny and XBIMTeam Contributors</Authors>
+    <Product>XBIM Utilities</Product>
+    <PackageLicenseExpression>CDDL-1.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/xBimTeam/XbimGUtilities</PackageProjectUrl>
+    <PackageIconUrl>https://avatars1.githubusercontent.com/u/2284875?v=3&amp;amp;s=240</PackageIconUrl>
+    <PackageReleaseNotes>Updated to version 5.0. Removed log4net
+    </PackageReleaseNotes>
+    <PackageTags>BIM, IFC, Conversion, Metrics, Regression Tests</PackageTags>
+    <RepositoryUrl>https://github.com/xBimTeam/XbimUtilities/tree/master</RepositoryUrl>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <SuppressNETCoreSdkPreviewMessage>true</SuppressNETCoreSdkPreviewMessage>
+  </PropertyGroup>
+
+</Project>

@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using Xbim.Common.Logging;
-using Xbim.Ifc2x3.Extensions;
+using Xbim.Ifc;
 using Xbim.Ifc2x3.GeometricModelResource;
 using Xbim.Ifc2x3.GeometryResource;
-using Xbim.Ifc2x3.IO;
 using Xbim.Ifc2x3.Kernel;
 using Xbim.Ifc2x3.ProductExtension;
 using Xbim.Ifc2x3.RepresentationResource;
-using Xbim.Ifc2x3.TopologyResource;
-using Xbim.IO;
 using Xbim.ModelGeometry.Scene;
 
 namespace XbimMetrics
@@ -28,31 +22,22 @@ namespace XbimMetrics
             Params arguments = Params.ParseParams(args);
             if (arguments.IsValid)
             {
-                if (!arguments.SourceIsXbimFile) //need to parse the file
-                {
-                    using (EventTrace eventTrace = LoggerFactory.CreateEventTrace())
-                    {
-                        using (var model = new XbimModel())
-                        {
-                            model.CreateFrom(arguments.SourceModelName,null,null,true);
-                            var m3D = new Xbim3DModelContext(model);
-                            arguments.SourceModelName = Path.ChangeExtension(arguments.SourceModelName, ".xbim");
-                            m3D.CreateContext();
-                            model.Close();
-                        }
-                        CreateLogFile(arguments.SourceModelName, eventTrace.Events);
-                    }
-                }
-                Console.WriteLine("Analysing....."); 
+                
                 var metrics = new XbimModelMetrics();
-                using (var model = new XbimModel())
+                using (var model = IfcStore.Open(arguments.SourceModelName))
                 {
-                    model.Open(arguments.SourceModelName);
-
+                    if (!arguments.SourceIsXbimFile) //need to parse the file
+                    {
+                        Console.WriteLine("Generating Geometry ...");
+                        var m3D = new Xbim3DModelContext(model);
+                        m3D.CreateContext();
+                    }
+                    Console.WriteLine("Analysing....."); 
                     metrics["Number Of IfcProducts"] = model.Instances.OfType<IfcProduct>().Count();
                     var shapeDefinitions = model.Instances.OfType<IfcProductDefinitionShape>().ToList();
                     metrics["Number Of IfcProductDefinitionShape"] = shapeDefinitions.Count();
-                    var rep = shapeDefinitions.SelectMany(shape=>shape.Representations.SelectMany(a=>a.Items).Where(s=>s.IsSolidModel()));
+                    var rep = shapeDefinitions.SelectMany(shape => shape.Representations.SelectMany(a => a.Items));
+                        //.Where(s=>s.IsSolidModel()));
                     metrics["Number Of Shape Items"] = rep.Count();
 
                     metrics["Number Of IfcCartesianPoint"] = model.Instances.OfType<IfcCartesianPoint>().Count();
@@ -101,36 +86,5 @@ namespace XbimMetrics
             Console.ReadLine();
         }
 
-        private static void CreateLogFile(string ifcFile, IList<Event> events)
-        {
-
-            string logfile = Path.ChangeExtension(ifcFile, ".log");
-            using (StreamWriter writer = new StreamWriter(logfile, false))
-            {
-                foreach (Event logEvent in events)
-                {
-                    string message = SanitiseMessage(logEvent.Message, ifcFile);
-                    writer.WriteLine("{0:yyyy-MM-dd HH:mm:ss} : {1} {2}.{3} - {4}",
-                        logEvent.EventTime,
-                        logEvent.EventLevel,
-                        logEvent.Logger,
-                        logEvent.Method,
-                        message
-                        );
-                }
-                writer.Flush();
-                writer.Close();
-            }
-
-        }
-
-        private static string SanitiseMessage(string message, string xbimFile)
-        {
-            string modelPath = Path.GetDirectoryName(xbimFile);
-            string currentPath = Environment.CurrentDirectory;
-            return message
-                .Replace(modelPath, String.Empty)
-                .Replace(currentPath, String.Empty);
-        }
     }
 }
