@@ -9,8 +9,8 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-    <PackageReference Include="Xbim.Essentials" Version="5.0.213" />
-    <PackageReference Include="Xbim.Geometry" Version="5.0.163" />
+    <PackageReference Include="Xbim.Essentials" Version="5.0.248" />
+    <PackageReference Include="Xbim.Geometry" Version="5.0.204" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "XbimExtract": {
+      "commandName": "Project",
+      "commandLineArgs": "\"C:\\Users\\Steve\\Downloads\\IFCTestModels\\FKA_ARCH_PODIUM_IFC(EDITED) PROBLEMATIC ELEMENTS ONLY.ifc\" \"C:\\Users\\Steve\\Source\\Repos\\xBimTeam\\XbimGeometry\\Xbim.Geometry.Engine.Interop.Tests\\TestFiles\\non_planar_wire.ifc\" 3237 --includeproject "
+    }
+  }
+}

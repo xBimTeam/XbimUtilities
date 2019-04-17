@@ -14,9 +14,9 @@ namespace XbimExtract
         /// <summary>
         /// Include project and other context objects to create a vlaid schema (ish)
         /// </summary>
-        public bool IncludeContext { get; set; }
-
-
+        public bool IncludeProject { get; set; }
+        public bool KeepLabels { get; set; }
+        public bool IncludeGeometry { get; set; }
         public static Params ParseParams(string[] args)
         {
             Params result = new Params(args);
@@ -35,10 +35,35 @@ namespace XbimExtract
                 TargetModelName = GetModelFileName(args[1], ".xbim");
                 SourceIsXbimFile = Path.GetExtension(SourceModelName).ToLower() == ".xbim";
                 EntityLabels = new List<int>(args.Length - 2);
+                IncludeProject = true;
+                IncludeGeometry = true;
+                KeepLabels = false;
                 for (int i = 2; i < args.Length; i++)
                 {
                     var entity = args[i];
-                    if (entity.Contains("-"))
+                    if(entity.StartsWith("--")) //its a param
+                    {
+                        var param = entity.TrimStart('-').ToUpperInvariant();
+                        var parts = param.Split('=');
+                        var left = parts[0];
+                        var right = (parts.Length==2 ? parts[1].ToLowerInvariant():"true");
+                        switch (left)
+                        {
+                            case "INCLUDEPROJECT":
+                                IncludeProject = (right=="true");
+                                break;
+                            case "KEEPLABELS":
+                                KeepLabels = (right == "true");
+                                break;
+                            case "INCLUDEGEOMETRY":
+                                IncludeGeometry = (right == "true");
+                                break;
+                            default:
+                                break;
+                        }
+
+                    }
+                    else if (entity.Contains("-"))
                     {
                         var parts = entity.Split('-');
                         Int32 bottom = Int32.Parse(parts[0]);
@@ -54,8 +79,7 @@ namespace XbimExtract
                     }
                 }
                 // Parameters are valid
-                IsValid = true;
-                IncludeContext = true;
+                IsValid = true;                
             }
             catch (Exception e)
             {

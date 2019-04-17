@@ -55,15 +55,20 @@ namespace XbimExtract
                                         arguments.EntityLabels.Select(label => source.Instances[label]).ToList();
                                     var products = toInsert.OfType<IIfcProduct>().ToList();
                                     var others = toInsert.Except(products).ToList();
-
+                                    if (arguments.IncludeProject) //add in the project and geom rep
+                                    {
+                                        others.AddRange(source.Instances.OfType<IIfcProject>());
+                                        
+                                    }
                                     if (products.Any())
                                         //this will insert products including their spatial containment, 
                                         //decomposition, properties and other related information
-                                        target.InsertCopy(products, true, true, maps);
+                                        target.InsertCopy(products, arguments.IncludeGeometry, arguments.KeepLabels, maps);
                                     if (others.Any())
                                         //if any of the specified objects were not products, insert them straight
                                         foreach (var entity in others)
-                                            target.InsertCopy(entity, maps, null, false, true);
+                                            target.InsertCopy(entity, maps, null,false, arguments.KeepLabels);
+                                   
                                 }
                                 catch (Exception ex)
                                 {
@@ -88,7 +93,8 @@ namespace XbimExtract
             }
             else
             {
-                Logger.LogError("Supplied params are invalid");
+                Logger.LogError("Supplied params are invalid. ");
+                Console.WriteLine("XbimExtract source destination [--IncludeProject=[true|false] | --KeepLabels=[true|false] ==IncludeGeeometry=[true|false]]");
             }
 
             Logger.LogInformation("{0} Ended", AppName);

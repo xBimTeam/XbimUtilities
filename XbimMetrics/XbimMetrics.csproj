@@ -6,7 +6,7 @@
     <Description>Tool providing statistics on a model</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Essentials" Version="5.0.213" />
-    <PackageReference Include="Xbim.Geometry" Version="5.0.163" />
+    <PackageReference Include="Xbim.Essentials" Version="5.0.248" />
+    <PackageReference Include="Xbim.Geometry" Version="5.0.204" />
   </ItemGroup>
 </Project>

@@ -8,6 +8,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="2.2.0" />
-    <PackageReference Include="Xbim.Essentials" Version="5.0.213" />
+    <PackageReference Include="Xbim.Essentials" Version="5.0.248" />
   </ItemGroup>
 </Project>
