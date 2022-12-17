@@ -1,12 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net47</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.1</TargetFrameworks>
     <Title>XbimMetrics</Title>
     <Description>Tool providing statistics on a model</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Xbim.Essentials" Version="5.0.248" />
-    <PackageReference Include="Xbim.Geometry" Version="5.0.204" />
+    <PackageReference Include="Xbim.Essentials" Version="5.1.364-develop" />
+    <PackageReference Include="Xbim.Geometry" Version="6.1.511-netcore" />
+    <PackageReference Include="Xbim.IO.Esent" Version="5.9.372-develop" />
   </ItemGroup>
 </Project>

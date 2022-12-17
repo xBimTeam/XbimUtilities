@@ -30,7 +30,7 @@ namespace XbimRegression
         {
             var serviceProvider = ConfigureServices();
             SetupXbimLogging(serviceProvider);
-            IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
+           // IfcStore.ModelProviderFactory.UseHeuristicModelProvider();
             _params = arguments;
             _thisReportSet = new ProcessResultSet();
         }
